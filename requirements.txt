@@ -1,0 +1,4 @@
+# Core dependencies for the speech AI project
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
