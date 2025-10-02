@@ -95,17 +95,37 @@ for k = 1:N
     previousInput = u;
 
     % 航道软约束: 偏离中心线的距离
-    distToCenter = norm(x(1:2) - ref.position(k, :).');
+    tHat = [cos(ref.heading(k)); sin(ref.heading(k))];
+    nHat = [-tHat(2); tHat(1)]; % 指向左侧的法向量
+    relPos = x(1:2) - ref.position(k, :).';
+    distToCenter = norm(relPos);
     exceed = max(0, distToCenter - ref.halfWidth(k));
     J = J + params.channelPenalty * exceed^2;
 
     % 障碍物软约束
     for iObs = 1:numel(obstacles)
         obs = obstacles(iObs);
-        d = norm(x(1:2) - obs.position.');
-        safetyRadius = obs.radius + obs.safety;
-        avoid = max(0, safetyRadius - d);
-        J = J + params.gammaObs * avoid^2;
+        relObs = obs.position.' - x(1:2);
+        along = dot(tHat, relObs);
+
+        % 仅在障碍物位于前方窗口内时触发避碰代价, 避免提前掉头
+        if along > -params.obstacleBehindTolerance && along <= params.obstacleLookAhead
+            d = norm(relObs);
+            safetyRadius = obs.radius + obs.safety;
+            avoid = max(0, safetyRadius - d);
+            J = J + params.gammaObs * avoid^2;
+
+            if avoid > 0
+                % 避碰期间抑制右转/掉头, 鼓励向左侧避让
+                headingDelta = wrapToPiLocal(x(3) - ref.heading(k));
+                turnBias = max(0, -headingDelta);
+                J = J + params.turnBiasWeight * (avoid / safetyRadius)^2 * turnBias^2;
+
+                lateralOffset = dot(nHat, relPos);
+                lateralDeficit = max(0, -lateralOffset);
+                J = J + params.lateralBiasWeight * (avoid / safetyRadius)^2 * lateralDeficit^2;
+            end
+        end
     end
 end
 

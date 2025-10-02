@@ -30,6 +30,10 @@ params.R = diag([1e-4, 20]);        % 控制增量权重 (delta thrust, delta ru
 params.gammaObs = 1e5;    % 障碍物惩罚权重
 params.safeDistance = 80; % 安全距离 (m)
 params.channelPenalty = 2e4; % 航道边界惩罚系数
+params.obstacleLookAhead = 120;   % (m) 前方在该距离内的障碍物才参与避碰
+params.obstacleBehindTolerance = 15; % (m) 允许的后向裕度, 防止反复对已越过障碍物惩罚
+params.turnBiasWeight = 6e4;      % 避碰时对右转/掉头的附加惩罚
+params.lateralBiasWeight = 8e3;   % 避碰时鼓励左舷偏移的惩罚权重
 
 % 期望速度/艏向
 params.desiredSpeed = 4.0; % m/s
